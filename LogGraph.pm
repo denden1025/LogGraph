@@ -1,7 +1,7 @@
 ##################################################################
 #ログファイル集計＆グラフ化     LogGraph.pm                      #
 #（MTプラグインMultiCounterX 連携可）                            #
-#    2017/2/14 V1.0.0.0                                          #
+#    2017/2/17 V1.0.0.1    Win対応                               #
 #                    denden   webkoza.com                        #
 ##################################################################
 
@@ -23,7 +23,7 @@ $Agent_AndroidOpera_num,$Agent_AndroidFirefox_num,$Agent_WH_num,$Agent_BB_num,$A
 $Agent_IE9_num,$Agent_IE10_num,$Agent_IE11_num,$Agent_IE8_num,$Agent_IEOther_num,
 $Agent_GC_num,$Agent_Lunascape_num,$Agent_Safari_num,$Agent_Opera_num,$Agent_bot_num,
 $Agent_NMFirefox_num,$Agent_Au_num,$Agent_Doco_num,$Agent_Softb_num,$Agent_other_num,
-$Q,$im,$TITLE
+$Q,$im,$TITLE,$Font,$FontPath
 );
 # オブジェクトメソッド
 
@@ -78,11 +78,7 @@ return 'ng';
 sub makeimage { # body 生成
 
 my $rw; #データセット関数の戻り値 0以外＝エラーなのでエラーイメージ出力へ
-
-# use CGI;
-#my $Q = new CGI; # myしたのでスコープはmainのみ
-#print $Q->header(-type=>'image/png',-expires=>'+3d');
-#print $Q->header(-type=>'text/html',-expires=>'+3d');
+my @ww =('');
 #--------グローバル変数セット---------
 $UAID = 13;
 $EX_LOCK=2; #ｆｌｏｃｋの排他ロックモード
@@ -92,14 +88,19 @@ $Ya = $Q->param('year');
 $Mo = $Q->param('month');
 $TITLE = $Q->param('kizititle');
 $TITLE =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg; #un escape
-# $FilePath = "/home/httpd/html/imgcnt";
 $FilePath = $Q->param('logdir'); # 20170204
-$LOGFILE = $FilePath . '/' . $Pa . '/img' . $Ya . '_' . $Mo . '.txt';
-#### ImageCounter移行処置 ####
-#if(($Pa == 1) or ($Pa == 2)){
-#	$LOGFILE = "/home/httpd/html/SessCont/log/$Pa". '/img' . $Ya . '_' . $Mo . '.txt';
-#}
-##############################
+if($^O =~ /MSWin/){
+	$LOGFILE = $FilePath . "\\" . $Pa . "\\img" . $Ya . "_" . $Mo . ".txt";
+	@ww = split(m|\\|,$Q->param("fontfile"));
+	$Font = [splice(@ww,$#ww)]->[0];
+	$FontPath = join("\\",@ww) . "\\";
+}else{
+	$LOGFILE = $FilePath . '/' . $Pa . '/img' . $Ya . '_' . $Mo . '.txt';
+	@ww = split('/',$Q->param('fontfile'));
+	$Font = [splice(@ww,$#ww)]->[0];
+	$FontPath = join('/',@ww) . '/';
+}
+
 @DayNo = qw(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31);
 @DayNinzu = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
 @Agent_iPhone = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
@@ -151,18 +152,17 @@ $Agent_Au_num = 0;
 $Agent_Doco_num = 0;
 $Agent_Softb_num = 0;
 $Agent_other_num = 0;
-# $gimage;
 #---------------------------
 &initgd0; # GD初期化
 my $method = $Q->request_method();
 if(uc($method) eq 'GET'){
 	if($Q->param('act') eq 'disp_grp'){
 		$rw = &set_logdata;
-		if($rw ne 'ok'){return err_wr("set_logdata Error\n$rw")}; #Error
+		if($rw ne 'ok'){return err_wr("Error\n$rw")}; #Error
 		return disp_grp($Q->param('page'));
 	}elsif($Q->param('act') eq 'disp_grp_pie'){
 		$rw = &set_logdata_pie;
-		if($rw ne 'ok'){return err_wr("set_logdata_pie Error\n$rw")}; #Error
+		if($rw ne 'ok'){return err_wr("Error\n$rw")}; #Error
 		return disp_grp_pie($Q->param('page'));
 	}else{
 		return err_wr("Call Error1");
@@ -177,8 +177,6 @@ if(uc($method) eq 'GET'){
 sub disp_grp_pie($){
 my($page)=@_;
 my($text1,$gr,@gdata,$gimage,@agent_st);
-# print $Q->h1({-align=>center}, "Page = $page"),"\n";
-#$text1 = "Page = $page , $Ya/$Mo";
 $text1 = Jcode::jcode("Agent別訪問者数：" . "P". $page . " ")->utf8 . $TITLE . Jcode::jcode(" , $Ya/$Mo , 総訪問者数 = $DayNinzu_num")->utf8;
 
 $gdata[1] = [$Agent_iPhone_num,$Agent_iPod_num,$Agent_iPad_num,
@@ -205,10 +203,14 @@ $gdata[0] =['iPhone','iPod','iPad',
 			'WindowsPhone','BlackBerry','Symbian','IE9','IE10','IE11','IE8','IEOther',
 			'GoogleCrome','Lunascape','Safari','Opera','bot','NMFirefox',
 			'Au','Doco','Softb','other'];
-GD::Text->font_path( "/usr/share/fonts/vlgothic/" );
-$gr->set_title_font( "VL-Gothic-Regular", 12 );
-$gr->set_value_font( "VL-Gothic-Regular", 12 );
+
+GD::Text->font_path( "$FontPath" );
+#my $fontname = [split(/\./,$Font)]->[0];
+my $fontname = $Font;
+$gr->set_title_font( "$fontname", 12 );
+$gr->set_value_font( "$fontname", 12 );
 $gimage = $gr->plot( \@gdata ) or die( "Cannot create image" );
+
 #binmode STDOUT;
 # Convert the image to PNG and print it on standard output
 #print $gimage->png;
@@ -219,7 +221,6 @@ return $gimage->png;
 sub disp_grp($){
 my($page)=@_;
 my($text1,$gr,@gdata,$gimage);
-# print $Q->h1({-align=>center}, "Page = $page"),"\n";
 $text1 = Jcode::jcode("Agent別訪問者数：" . "P". $page . " ")->utf8 . $TITLE . ", $Ya/$Mo";
 
 @gdata = (\@DayNo,\@Agent_iPhone,\@Agent_iPod,\@Agent_iPad,
@@ -228,11 +229,6 @@ $text1 = Jcode::jcode("Agent別訪問者数：" . "P". $page . " ")->utf8 . $TIT
 			\@Agent_IE9,\@Agent_IE10,\@Agent_IE11,\@Agent_IE8,\@Agent_IEOther,
 			\@Agent_GC,\@Agent_Lunascape,\@Agent_Safari,\@Agent_Opera,\@Agent_bot,\@Agent_NMFirefox,
 			\@Agent_Au,\@Agent_Doco,\@Agent_Softb,\@Agent_other,\@DayNinzu);
-#$ggdat = [
-#    [qw( 日 月 火 水 木 金 土 )],
-#    [qw( 78 84 89 91 86 88 95 )],
-#    [qw( 51 59 63 67 56 43 45 )]
-#];
 
 $gr = GD::Graph::mixed -> new(800,600);
 $gr->set( title => $text1,
@@ -255,14 +251,18 @@ $gr->set_legend(iPhone,iPod,iPad,
 			WindowsPhone,BlackBerry,Symbian,IE9,IE10,IE11,IE8,IEOther,
 			GoogleCrome,Lunascape,Safari,Opera,bot,NMFirefox,
 			Au,Doco,Softb,other,Total);
-GD::Text->font_path( "/usr/share/fonts/vlgothic/" );
-$gr->set_title_font( "VL-Gothic-Regular", 14 );
-$gr->set_legend_font( "VL-Gothic-Regular", 8 );
-$gr->set_x_axis_font( "VL-Gothic-Regular", 8 );
-$gr->set_x_label_font( "VL-Gothic-Regular", 10 );
-$gr->set_y_axis_font( "VL-Gothic-Regular", 8 );
-$gr->set_y_label_font( "VL-Gothic-Regular", 8 );
+
+GD::Text->font_path( "$FontPath" );
+#my $fontname = [split(/\./,$Font)]->[0];
+my $fontname = $Font;
+$gr->set_title_font( "$fontname", 14 );
+$gr->set_legend_font( "$fontname", 8 );
+$gr->set_x_axis_font( "$fontname", 8 );
+$gr->set_x_label_font( "$fontname", 10 );
+$gr->set_y_axis_font( "$fontname", 8 );
+$gr->set_y_label_font( "$fontname", 8 );
 $gimage = $gr->plot( \@gdata ) or die( "Cannot create image" );
+
 #binmode STDOUT;
 # Convert the image to PNG and print it on standard output
 #print $gimage->png;
@@ -281,9 +281,7 @@ my($text1,$i,@da);
 if (-e $LOGFILE){
 	open R,"<$LOGFILE" or die "Cannot Open $LOGFILE :$!"; #読み出し専用
 }else{
-	# err_wr("Nothing Logfile : " . 'img' . $Ya . '_' . $Mo . '.txt');
-	#return;
-	return err_wr("Nothing Logfile : " . 'img' . $Ya . '_' . $Mo . '.txt');
+	return ("Nothing Logfile : " . 'img' . $Ya . '_' . $Mo . '.txt');
 }
 flock R, $EX_LOCK;
 my ($dayw,$mow)=('0','0');
@@ -339,12 +337,9 @@ my($text1,$i,@da);
 if (-e $LOGFILE){
 	open R,"<$LOGFILE" or die "Cannot Open $LOGFILE :$!"; #読み出し専用
 }else{
-	#err_wr("Nothing Logfile : " . 'img' . $Ya . '_' . $Mo . '.txt');
-	#return;
-	return err_wr("Nothing Logfile : " . 'img' . $Ya . '_' . $Mo . '.txt');
+	return ("Nothing Logfile : " . 'img' . $Ya . '_' . $Mo . '.txt');
 }
 flock R, $EX_LOCK;
-#my $erstw='day -- ';
 my ($dayw,$mow)=('0','0');
 while(<R>){
 	chomp($_);
@@ -353,7 +348,6 @@ while(<R>){
 	$dayw = Jcode::jcode('日')->euc;
 	$mow = Jcode::jcode('月')->euc;
 	$i = [split(/$dayw/,[split(/$mow/,$da[1])]->[1])]->[0] - 1;# 日にち抽出→１引いてidexに変換
-	#$erstw .= $i.' ';
 	++$DayNinzu[$i];
 	$_ = $da[$UAID]; # User_Agent
 	{
@@ -385,14 +379,11 @@ while(<R>){
 }
 close R;
 return 'ok';
-#return $erstw;
 }
 #==================
 sub err_wr($){
 my ($d) = @_;
-# print "$d";
-# $im->string(gdLargeFont,5,5,$d,$BaseCref);
-my $font_file ='/usr/share/fonts/vlgothic/VL-Gothic-Regular.ttf';
+my $font_file =$Q->param('fontfile');
 $im->stringFT($BaseCref,         # 色
           $font_file, 10,  # フォント・フォントサイズ
           0,   # 回転角度
@@ -415,7 +406,6 @@ $im->rectangle(1,1,480 - 1,50 - 1,$bcolor);
 #============================================================
 sub outst0{
 my($x,$y,$text,$col) = @_;
-#my $fff = GD::Font->load('/usr/share/fonts/vlgothic/VL-Gothic-Regular.ttf') or die "Can't load VL-Gothic-Regular!";
 $im->string(gdLargeFont,$x,$y,$text,$col);
 # make sure we are writing to a binary stream
 #binmode STDOUT;

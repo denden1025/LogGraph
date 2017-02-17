@@ -1,16 +1,17 @@
 # LogGraph.pm Readme (Japanese Only)
-### 更新日：2017/2/13
+### 更新日：2017/2/17
 ---
 ## 概要
 独自のアクセスログファイルを集計して、GDを使ったグラフを作成するPerlパッケージです。  
-本パッケージを利用するpsgiアプリ側で「必要モジュール1」をuseしてください。  
-Plack::Builderを使用したマルチアプリケーションフレームから呼び出す前提で作りました。  
+修正を加えたくなければ本パッケージを利用するpsgiアプリ側で「必要モジュール1」をuseしてください。  
+Plack::Builderを使用したマルチアプリケーションフレームから呼び出すために作りました。  
 CGI::PSGIオブジェクトリファレンスを渡してインスタンスを生成します。
 
+## 動作確認環境
+Fedora18 , Apache/2.4.4 (Fedora) , mod_proxy  
+Windows10 Home 64bit , Apache/2.4.23 (Win64) , mod_proxy  
+
 ## 必要モジュール1（呼び出し元にてuse）
-Plack::Builder  
-Encode  
-URI::Escape  
 CGI::PSGI  
 Jcode  
 
@@ -60,17 +61,14 @@ disp_grp_pie : 指定月の総訪問人数をエージェント別パーセン�
 グラフタイトル欄に表示させるタイトル文字列。uriescapeされたもの。
 
 ## コーディング
-下記のようなマルチアプリケーションフレーム用psgiから呼び出す例を紹介します。  
+Plack::Builderを使ったマルチアプリケーションフレーム用psgiから呼び出す例を紹介します。  
 CGI::PSGIのオブジェクトを生成しそのリファレンスをnewに渡してLogGraphオブジェクトを生成します。  
 生成したらto_app()を呼び出してください。  
 下記では/MTlog_anaというURLでリクエストされるとこのto_app()関数がグラフイメージをhttpヘッダー付きで返します。
 <pre>
 use Plack::Builder;
 use lib qw(/root/webkoza_psgis/lib);
-use Encode;
-use URI::Escape;
 use CGI::PSGI;
-use Jcode;
 use Sitelog::LogGraph;
 
 my $app1 = sub { #超基本
@@ -85,8 +83,10 @@ my $MTlog_analizer = sub { # MT用ログ解析グラフ表示
 };
 
 builder{
-	enable "StackTrace";
 	mount "/a"=>$app1;
-	mount "/MTlog_ana"=>$MTlog_analizer;
+	mount "/MTlog_ana"=>builder{
+		enable "StackTrace";
+		$MTlog_analizer;
+	}
 };
 </pre>
