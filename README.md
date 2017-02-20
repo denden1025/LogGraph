@@ -1,5 +1,5 @@
 # LogGraph.pm Readme (Japanese Only)
-### 更新日：2017/2/17
+### 更新日：2017/2/20
 ---
 ## 概要
 独自のアクセスログファイルを集計して、GDを使ったグラフを作成するPerlパッケージです。  
@@ -26,6 +26,7 @@ YYYY年MM月DD日 hh:mm:ss
 ユーザー名（クッキーあれば）  
 性別  
 REMOTE_HOST  
+
 REMOTE_ADDR  
 HTTP_X_FORWARDED_FOR  
 HTTP_CACHE_INFO  
@@ -43,9 +44,8 @@ HTTP_FORWARDED
 
 1. act  
 disp_grp : 横軸に日、縦軸にその日の訪問人数をエージェント別に積み上げた棒グラフ表示  
-disp_grp_pie : 指定月の総訪問人数をエージェント別パーセンテージで円グラフ表示
-
-2. page  
+disp_grp_pie : 指定月の総訪問人数をエージェント別パーセンテージで円グラフ表示X
+2. page  
 ページ番号（半角数値） : lodirで指定されるログ保存ディレクトリ配下のページ番号の名前のディレクトリを探し、この中のログを収集する。
 
 3. year  
@@ -68,6 +68,7 @@ Plack::Builderを使ったマルチアプリケーションフレーム用psgi�
 CGI::PSGIのオブジェクトを生成しそのリファレンスをnewに渡してLogGraphオブジェクトを生成します。  
 生成したらto_app()を呼び出してください。  
 下記では/MTlog_anaというURLでリクエストされるとこのto_app()関数がグラフイメージをhttpヘッダー付きで返します。
+実際にはこのURLに?XXX=YYY&...というように上記で説明したクエリーパラメータを全て付加してリクエストします。
 <pre>
 use Plack::Builder;
 use lib qw(/root/webkoza_psgis/lib);
