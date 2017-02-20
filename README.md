@@ -18,6 +18,7 @@ Jcode
 ## 必要モジュール2（本パッケージでuse）
 GD  
 GD::Graph::mixed  
+
 GD::Graph::pie  
 
 ## ログ仕様（タブ区切りテキスト）
@@ -94,3 +95,6 @@ builder{
 	}
 };
 </pre>
+
+## グラフイメージ
+http://www.webkoza.com/rooms/2017/02/multicounterx-1.html
